@@ -30,13 +30,15 @@ class Cubie extends THREE.Mesh {
 
   updateMaterials() {
     this.material = [
-      new THREE.MeshBasicMaterial({ color: this.faceColors.right }), // +X
-      new THREE.MeshBasicMaterial({ color: this.faceColors.left }), // -X
-      new THREE.MeshBasicMaterial({ color: this.faceColors.top }), // +Y
-      new THREE.MeshBasicMaterial({ color: this.faceColors.bottom }), // -Y
-      new THREE.MeshBasicMaterial({ color: this.faceColors.front }), // +Z
-      new THREE.MeshBasicMaterial({ color: this.faceColors.back }), // -Z
+      new THREE.MeshBasicMaterial({ color: this.faceColors.right }),
+      new THREE.MeshBasicMaterial({ color: this.faceColors.left }),
+      new THREE.MeshBasicMaterial({ color: this.faceColors.top }),
+      new THREE.MeshBasicMaterial({ color: this.faceColors.bottom }),
+      new THREE.MeshBasicMaterial({ color: this.faceColors.front }),
+      new THREE.MeshBasicMaterial({ color: this.faceColors.back }),
     ];
+
+    this.material.forEach((mat) => (mat.needsUpdate = true)); // ✅ Ensures update
   }
 
   rotateColors(axis, direction) {
@@ -44,65 +46,20 @@ class Cubie extends THREE.Mesh {
     let newColors = { ...this.faceColors };
 
     if (axis === "x") {
-      if (direction > 0) {
-        newColors = {
-          right,
-          left,
-          top: back,
-          bottom: front,
-          front: top,
-          back: bottom,
-        };
-      } else {
-        newColors = {
-          right,
-          left,
-          top: front,
-          bottom: back,
-          front: bottom,
-          back: top,
-        };
-      }
+      newColors =
+        direction > 0
+          ? { right, left, top: back, bottom: front, front: top, back: bottom }
+          : { right, left, top: front, bottom: back, front: bottom, back: top };
     } else if (axis === "y") {
-      if (direction > 0) {
-        newColors = {
-          right: front,
-          left: back,
-          top,
-          bottom,
-          front: left,
-          back: right,
-        };
-      } else {
-        newColors = {
-          right: back,
-          left: front,
-          top,
-          bottom,
-          front: right,
-          back: left,
-        };
-      }
+      newColors =
+        direction > 0
+          ? { right: front, left: back, top, bottom, front: left, back: right }
+          : { right: back, left: front, top, bottom, front: right, back: left };
     } else if (axis === "z") {
-      if (direction > 0) {
-        newColors = {
-          right: bottom,
-          left: top,
-          top: right,
-          bottom: left,
-          front,
-          back,
-        };
-      } else {
-        newColors = {
-          right: top,
-          left: bottom,
-          top: left,
-          bottom: right,
-          front,
-          back,
-        };
-      }
+      newColors =
+        direction > 0
+          ? { right: bottom, left: top, top: right, bottom: left, front, back }
+          : { right: top, left: bottom, top: left, bottom: right, front, back };
     }
 
     this.faceColors = newColors;
@@ -161,9 +118,7 @@ class Cube {
           cubie.position.set(newPos.x, newPos.y, newPos.z);
           cubie.rotation.set(0, 0, 0);
 
-          // ✅ Rotate the cubie's face colors
           cubie.rotateColors(axis, direction);
-
           this.scene.add(cubie);
         });
 
@@ -191,6 +146,23 @@ class Cube {
 
     return rotated;
   }
+
+  scramble(moves = 30, duration = 100) {
+    const axes = ["x", "y", "z"];
+    const directions = [1, -1];
+    const indices = [-1, 1];
+
+    for (let i = 0; i < moves; i++) {
+      const axis = axes[Math.floor(Math.random() * axes.length)];
+      const direction =
+        directions[Math.floor(Math.random() * directions.length)];
+      const index = indices[Math.floor(Math.random() * indices.length)];
+
+      setTimeout(() => {
+        this.rotateFace(axis, index, direction, duration);
+      }, i * duration);
+    }
+  }
 }
 
 function Hero() {
@@ -216,50 +188,43 @@ function Hero() {
     );
     camera.position.set(4, 4, 8);
 
-    // 🔥 Add an Axis Helper (Shows X, Y, Z)
-    const axesHelper = new THREE.AxesHelper(3);
-    scene.add(axesHelper);
-
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(5, 5, 5);
-    scene.add(ambientLight, directionalLight);
-
     const rubiksCube = new Cube(scene);
     rubiksCubeRef.current = rubiksCube;
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
 
     const animate = () => {
       requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
     };
-
     animate();
 
-    window.addEventListener("keydown", (event) => {
+    const handleKeyDown = (event) => {
       if (!rubiksCubeRef.current) return;
-      const keyMap = {
-        U: ["y", 1, 1],
-        I: ["y", 1, -1],
-        D: ["y", -1, 1],
-        K: ["y", -1, -1],
-        F: ["z", 1, 1],
-        J: ["z", 1, -1],
-        B: ["z", -1, 1],
-        N: ["z", -1, -1],
-        L: ["x", -1, 1],
-        H: ["x", -1, -1],
-        R: ["x", 1, 1],
-        O: ["x", 1, -1],
+      const key = event.key.toUpperCase();
+
+      const rotations = {
+        S: () => rubiksCubeRef.current.scramble(),
+        R: () => rubiksCubeRef.current.rotateFace("x", 1, 1),
+        L: () => rubiksCubeRef.current.rotateFace("x", -1, -1),
+        U: () => rubiksCubeRef.current.rotateFace("y", 1, 1),
+        D: () => rubiksCubeRef.current.rotateFace("y", -1, -1),
+        F: () => rubiksCubeRef.current.rotateFace("z", 1, 1),
+        B: () => rubiksCubeRef.current.rotateFace("z", -1, -1),
       };
-      if (keyMap[event.key.toUpperCase()]) {
-        rubiksCubeRef.current.rotateFace(...keyMap[event.key.toUpperCase()]);
+
+      if (rotations[key]) {
+        rotations[key]();
       }
-    });
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   return <div ref={containerRef} style={{ width: "100vw", height: "100vh" }} />;
