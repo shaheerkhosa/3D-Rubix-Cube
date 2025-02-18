@@ -13,7 +13,8 @@ const FACE_COLORS = {
 
 class Cubie extends THREE.Mesh {
   constructor(x, y, z) {
-    super(new THREE.BoxGeometry(1, 1, 1), []);
+    const cubieSize = 0.95;
+    super(new THREE.BoxGeometry(cubieSize, cubieSize, cubieSize), []);
 
     this.faceColors = {
       right: x === 1 ? FACE_COLORS.right : "#000000",
@@ -124,6 +125,8 @@ class Cube {
 
         this.scene.remove(rotationGroup);
         this.isRotating = false;
+
+        console.log(this.getFaceColors());
       }
     };
 
@@ -162,6 +165,30 @@ class Cube {
         this.rotateFace(axis, index, direction, duration);
       }, i * duration);
     }
+  }
+
+  getFaceColors() {
+    const faceColors = {
+      right: [],
+      left: [],
+      top: [],
+      bottom: [],
+      front: [],
+      back: [],
+    };
+  
+    this.cubies.forEach((cubie) => {
+      const { x, y, z } = cubie.position;
+  
+      if (x === 1) faceColors.right.push(cubie.faceColors.right); 
+      if (x === -1) faceColors.left.push(cubie.faceColors.left);
+      if (y === 1) faceColors.top.push(cubie.faceColors.top);
+      if (y === -1) faceColors.bottom.push(cubie.faceColors.bottom);
+      if (z === 1) faceColors.front.push(cubie.faceColors.front);
+      if (z === -1) faceColors.back.push(cubie.faceColors.back);
+    });
+  
+    return faceColors;
   }
 }
 
